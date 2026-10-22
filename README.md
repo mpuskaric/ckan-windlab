@@ -29,3 +29,11 @@ ckan.plugins = activity stats text_view image_view recline_view scheming_dataset
 
 ```
 
+## Publication
+
+ Puskaric, M. and Buck, N. (2026). Metadata Management in Wind Energy Research Data: The Windlab Knowledge and Data Hub. In Proceedings of the 15th International Conference on Data Science, Technology and Applications - Volume 2: DATA; ISBN 978-989-758-854-9; ISSN 2184-285X, SciTePress, pages 1109-1116. DOI: 10.5220/0015231500004091 
+
+## Funding
+
+This work was supported by the MERIDIONAL project, which has received funding from the Horizon Europe programme under grant agreement No. 101084216.
+
