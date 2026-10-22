@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+requests
+numpy
+sentence-transformers
+faiss-cpu
+ckanapi
+open-webui

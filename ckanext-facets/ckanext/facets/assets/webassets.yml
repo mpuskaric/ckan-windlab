@@ -1,0 +1,14 @@
+# facets-js:
+#   filter: rjsmin
+#   output: ckanext-facets/%(version)s-facets.js
+#   contents:
+#     - js/facets.js
+#   extra:
+#     preload:
+#       - base/main
+
+# facets-css:
+#   filter: cssrewrite
+#   output: ckanext-facets/%(version)s-facets.css
+#   contents:
+#     - css/facets.css

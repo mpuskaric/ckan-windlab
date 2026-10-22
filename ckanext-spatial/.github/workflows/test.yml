@@ -1,0 +1,129 @@
+name: Tests
+on: [push, pull_request]
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: Install requirements
+        run: pip install flake8 pycodestyle
+      - name: Check syntax
+        run: flake8 . --count --select=E901,E999,F821,F822,F823 --show-source --statistics --exclude ckan
+
+  test:
+    needs: lint
+    strategy:
+      matrix:
+        include:
+          - ckan-version: "2.10"
+            solr-image: "2.10-solr9-spatial"
+            harvester-version: 'master'
+          - ckan-version: 2.9
+            solr-image: 2.9-solr9-spatial
+            harvester-version: 'master'
+      fail-fast: false
+    
+    name: CKAN ${{ matrix.ckan-version }}, Solr ${{ matrix.solr-image }}
+    runs-on: ubuntu-latest
+    container:
+      image: openknowledge/ckan-dev:${{ matrix.ckan-version }}
+    services:
+      solr:
+        image: ckan/ckan-solr:${{ matrix.solr-image }}
+      postgres:
+        image: ckan/ckan-postgres-dev:${{ matrix.ckan-version }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:3
+    env:
+      CKAN_SQLALCHEMY_URL: postgresql://ckan_default:pass@postgres/ckan_test
+      CKAN_DATASTORE_WRITE_URL: postgresql://datastore_write:pass@postgres/datastore_test
+      CKAN_DATASTORE_READ_URL: postgresql://datastore_read:pass@postgres/datastore_test
+      CKAN_SOLR_URL: http://solr:8983/solr/ckan
+      CKAN_REDIS_URL: redis://redis:6379/1
+      PGPASSWORD: postgres
+    
+    steps:
+    - uses: actions/checkout@v3
+  
+    - name: Install dependencies (common)
+      run: |
+        apk add --no-cache \
+          geos \
+          geos-dev \
+          proj-util \
+          proj-dev \
+          libxml2 \
+          libxslt \
+          gcc \
+          libxml2-dev \
+          libxslt-dev
+
+    - name: Enable pip cache
+      run: |
+        echo "PIP version: $(pip --version)"
+        mkdir -p ~/.cache/pip
+        pip install -U pip --cache-dir ~/.cache/pip
+        chown -R $(whoami) ~/.cache/pip
+
+    - uses: actions/cache@v3
+      id: cache
+      with:
+        path: |
+          ~/.cache/pip
+          /usr/lib/python*/site-packages
+        key: ${{ runner.os }}-spatial-ckan-${{ matrix.ckan-version }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-spatial-ckan-${{ matrix.ckan-version }}-${{ hashFiles('requirements.txt') }}
+
+    - name: Patch to test pyproj
+      if: ${{ matrix.ckan-version == '2.9' }}
+      run: |
+        pip install cython==0.29.36
+        pip install --no-use-pep517 pyproj==2.6.1
+
+    - name: Install dependencies from requirements.txt
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        pip install -r requirements.txt
+
+    - name: Install harvester
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        echo "Installing harvester"
+        git clone --depth 1 --branch ${{ matrix.harvester-version }} https://github.com/ckan/ckanext-harvest
+        cd ckanext-harvest
+        echo "upgrade pip"
+        pip install --upgrade pip
+        echo "Installing harvester requirements"
+        pip install -r pip-requirements.txt
+        echo "Installing harvester dev-requirements"
+        pip install -r dev-requirements.txt
+        echo "Installing harvester extension"
+        pip install -e .
+
+    - name: Install requirements
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: pip install -e .
+
+    - name: Replace default path to CKAN
+      run: |
+        # Replace default path to CKAN core config file with the one on the container
+        sed -i -e 's/use = config:.*/use = config:\/srv\/app\/src\/ckan\/test-core.ini/' test.ini
+
+    - name: Run tests
+      run: pytest --ckan-ini=test.ini --cov=ckanext.spatial --cov-report=xml --cov-append --disable-warnings ckanext/spatial/tests
+
+    - name: Upload coverage report to codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml

@@ -1,0 +1,39 @@
+/* ========================================================================
+   The main masthead bar that contains the site logo, nav links, and search
+   ======================================================================== */
+
+.account-masthead {
+    background-image: none;
+    background-color: #ffffff;
+}
+
+.masthead {
+  background-image: none;
+  background-color: #3D9BE9;
+}
+
+.homepage .hero {
+  background-image: none;
+  background-color: #ffffff;
+}
+
+.homepage .module-search .module-content {
+  color: rgb(68, 68, 68);
+  background-color: white;
+}
+
+.homepage .module-feeds {
+  background-image: none;
+  background-color: #ffffff;
+}
+
+.media-grid {
+  background-image: none;
+}
+
+.site-footer,
+body {
+  background-image: none;
+  background-color: #3D9BE9;
+}
+

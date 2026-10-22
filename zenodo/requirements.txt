@@ -1,0 +1,6 @@
+lxml
+tqdm
+requests
+sentence-transformers
+scikit-learn
+rdflib
